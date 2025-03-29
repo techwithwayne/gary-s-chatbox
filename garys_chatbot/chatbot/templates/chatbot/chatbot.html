@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gary's Foods Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #chat-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+        .message {
+            margin: 5px 0;
+        }
+        .user {
+            text-align: right;
+            color: blue;
+        }
+        .bot {
+            text-align: left;
+            color: green;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+        }
+        button {
+            padding: 10px;
+        }
+
+        #suggestions {
+            margin-bottom: 15px;
+        }
+        #suggestions button {
+            margin: 5px 5px 0 0;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: #eee;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #suggestions button:hover {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>💬 Gary's Foods Chatbot</h1>
+
+    <h2>Need help? Try asking:</h2>
+    <div id="suggestions">
+        <button onclick="sendSuggestion('What are your store hours?')">🕒 Store Hours</button>
+        <button onclick="sendSuggestion('Where are you located?')">📍 Location</button>
+        <button onclick="sendSuggestion('Do you have Champs Chicken?')">🍗 Champs Chicken</button>
+        <button onclick="sendSuggestion('Can I see the weekly flyer?')">📰 Weekly Flyer</button>
+    </div>
+    <div id="chat-box"></div>
+
+    <input type="text" id="user-input" placeholder="Ask me something..." />
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        function appendMessage(text, sender) {
+            const chatBox = document.getElementById('chat-box');
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', sender);
+
+            // Convert URLs to clickable links
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const linkedText = text.replace(urlRegex, url => {
+                return `<a href="${url}" target="_blank">${url}</a>`;
+            });
+
+            msgDiv.innerHTML = linkedText;  // 👈 Use innerHTML instead of textContent
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('user-input');
+            const userMessage = input.value.trim();
+            if (!userMessage) return;
+
+            appendMessage(userMessage, 'user');
+            input.value = '';
+
+            fetch('/ask/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCSRFToken(),
+                },
+                body: `message=${encodeURIComponent(userMessage)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.reply) {
+                    appendMessage(data.reply, 'bot');
+                } else {
+                    appendMessage("Something went wrong...", 'bot');
+                }
+            })
+            .catch(error => {
+                appendMessage("Error: " + error.message, 'bot');
+            });
+        }
+
+        // CSRF token helper
+        function getCSRFToken() {
+            const name = 'csrftoken';
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const c = cookie.trim();
+                if (c.startsWith(name + '=')) {
+                    return decodeURIComponent(c.slice(name.length + 1));
+                }
+            }
+            return '';
+        }
+        function sendSuggestion(text) {
+            document.getElementById('user-input').value = text;
+            sendMessage();  // reuse your existing function
+        }
+    </script>
+</body>
+</html>
