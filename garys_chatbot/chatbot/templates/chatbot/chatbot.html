@@ -68,20 +68,23 @@
     <button onclick="sendMessage()">Send</button>
 
     <script>
-        function appendMessage(text, sender) {
+        function appendMessage(text, sender, isHtml = false) {
             const chatBox = document.getElementById('chat-box');
             const msgDiv = document.createElement('div');
             msgDiv.classList.add('message', sender);
-
-            // Convert URLs to clickable links
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            const linkedText = text.replace(urlRegex, url => {
-                return `<a href="${url}" target="_blank">${url}</a>`;
-            });
-
-            msgDiv.innerHTML = linkedText;  // 👈 Use innerHTML instead of textContent
+        
+            if (isHtml) {
+                msgDiv.innerHTML = text;
+            } else {
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                const linkedText = text.replace(urlRegex, url => {
+                    return `<a href="${url}" target="_blank">${url}</a>`;
+                });
+                msgDiv.innerHTML = linkedText;
+            }
+        
             chatBox.appendChild(msgDiv);
-            chatBox.scrollTop = chatBox.scrollHeight
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
 
         function sendMessage() {
@@ -103,7 +106,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.reply) {
-                    appendMessage(data.reply, 'bot');
+                    if (data.render_as_html) {
+                        appendMessage(data.reply, 'bot', true);  // use HTML
+                    } else {
+                        appendMessage(data.reply, 'bot');
+                    }
                 } else {
                     appendMessage("Something went wrong...", 'bot');
                 }

@@ -57,15 +57,20 @@ def ask_bot(request):
 
             bot_reply = response.choices[0].message.content.strip()
             
+            should_render_as_html = False  # default
+            
             if "where are you located" in user_message.lower() or "location" in user_message.lower():
-                # Encode address for Google Maps
                 encoded_address = store_info.address.replace(" ", "+")
                 gmaps_url = f"https://www.google.com/maps?q={encoded_address}"
-
-                bot_reply = (
-                    f"You can find us at {store_info.address}. "
-                    f"Here’s a link to get directions: {gmaps_url}"
+                embed_code = (
+                    f"<p>You can find us at {store_info.address}.</p>"
+                    f"<iframe src='{gmaps_url}&output=embed' width='100%' height='200' "
+                    f"style='border:0; border-radius:10px; margin-top:10px;' allowfullscreen='' "
+                    f"loading='lazy' referrerpolicy='no-referrer-when-downgrade'></iframe>"
                 )
+
+                bot_reply = embed_code
+                should_render_as_html = True
 
             # ESCALATION LOGIC
             trigger_keywords = ["talk to someone", "real person", "human", "manager", "escalate", "complaint"]
@@ -97,7 +102,10 @@ def ask_bot(request):
                 bot_reply=bot_reply
             )
 
-            return JsonResponse({'reply': bot_reply})
+            return JsonResponse({
+                'reply': bot_reply,
+                'render_as_html': should_render_as_html
+                })
 
         except Exception as e:
             print("EXCEPTION:", str(e))
